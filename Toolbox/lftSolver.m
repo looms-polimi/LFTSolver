@@ -207,21 +207,38 @@ function [Solution, InternalSolution, CommonTerms, varargout] = lftSolver(vararg
             end;  
             InternalSolution = cat(1, InternalSolution, [t_ode15s(2:end), VCT3(ind_step-length(t_ode15s)+2:ind_step,:), x(2:end,:), VCT1(ind_step-length(t_ode15s)+2:ind_step,:), y(2:end,:)]);
         end;
-        % Variable common terms
-        VCT8 = [];
-        VCT9_B = [];
-        VCT10 = [];
+%% obsolete
+%         % Variable common terms (without mem preallocation)
+%         VCT8 = [];
+%         VCT9_B = [];
+%         VCT10 = [];
+%         for i = 1:ind_step
+%             VCT8 = cat(3, VCT8, ([-FCT2, -VCT5(:,:,i)
+%                                   -FCT3, -VCT6(:,:,i)]\[LTI.C1, LTI.D13, LTI.D11
+%                                                         LTI.C2, LTI.D23, LTI.D21]));
+%             VCT9_B = cat(3, VCT9_B, ([LTI.B1
+%                                       LTI.D31]+[FCT1, VCT4(:,:,i)
+%                                                 FCT4, VCT7(:,:,i)]*VCT8(:,num_x+num_input+1:end,i)));
+%             VCT10 = cat(3, VCT10, ([LTI.A,  LTI.B3
+%                                     LTI.C3, LTI.D33]+[FCT1, VCT4(:,:,i)
+%                                                       FCT4, VCT7(:,:,i)]*VCT8(:,1:num_x+num_input,i)));    
+%         end;
+%%
+        % Variable common terms (with mem preallocation)
+        VCT8 = zeros(num_z+num_o,num_x+num_u+num_z,ind_step);
+        VCT9_B = zeros(num_x+num_y,num_z,ind_step);
+        VCT10 = zeros(num_x+num_y,num_x+num_u,ind_step);
         for i = 1:ind_step
-            VCT8 = cat(3, VCT8, ([-FCT2, -VCT5(:,:,i)
-                                  -FCT3, -VCT6(:,:,i)]\[LTI.C1, LTI.D13, LTI.D11
-                                                        LTI.C2, LTI.D23, LTI.D21]));
-            VCT9_B = cat(3, VCT9_B, ([LTI.B1
-                                      LTI.D31]+[FCT1, VCT4(:,:,i)
-                                                FCT4, VCT7(:,:,i)]*VCT8(:,num_x+num_input+1:end,i)));
-            VCT10 = cat(3, VCT10, ([LTI.A,  LTI.B3
-                                    LTI.C3, LTI.D33]+[FCT1, VCT4(:,:,i)
-                                                      FCT4, VCT7(:,:,i)]*VCT8(:,1:num_x+num_input,i)));    
-        end;
+            VCT8(:,:,i) = [-FCT2, -VCT5(:,:,i)
+                           -FCT3, -VCT6(:,:,i)]\[LTI.C1, LTI.D13, LTI.D11
+                                                 LTI.C2, LTI.D23, LTI.D21];
+            VCT9_B(:,:,i) = [LTI.B1
+                             LTI.D31]+[FCT1, VCT4(:,:,i)
+                                       FCT4, VCT7(:,:,i)]*VCT8(:,num_x+num_input+1:end,i);
+            VCT10(:,:,i) = [LTI.A,  LTI.B3
+                            LTI.C3, LTI.D33]+[FCT1, VCT4(:,:,i)
+                                              FCT4, VCT7(:,:,i)]*VCT8(:,1:num_x+num_input,i);    
+        end
         VCT9 = cat(2, VCT10(:,1:num_x,:), VCT9_B);
         CommonTerms = struct('FCT1', FCT1,...
                              'FCT2', FCT2,...
